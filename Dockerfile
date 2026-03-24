@@ -3,6 +3,9 @@ FROM node:18-slim
 # Install Chromium and dependencies for whatsapp-web.js
 RUN apt-get update && apt-get install -y \
     chromium \
+    python3 \
+    make \
+    g++ \
     fonts-ipafont-gothic \
     fonts-wqy-zenhei \
     fonts-thai-tlwg \
