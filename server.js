@@ -48,7 +48,7 @@ app.get('/health', (req, res) => {
 
 // WhatsApp status
 app.get('/api/status', auth, (req, res) => {
-  res.json({ connected: whatsapp.isReady() });
+  res.json({ connected: whatsapp.isReady(), hasQR: !!whatsapp.getLatestQR() });
 });
 
 // Initialize WhatsApp (triggers QR or restores session)
@@ -58,6 +58,27 @@ app.post('/api/whatsapp/init', auth, async (req, res) => {
     res.json({ success: true, ...result });
   } catch (err) {
     res.json({ success: false, error: err.message });
+  }
+});
+
+// Restart WhatsApp (destroy old client, start fresh — generates new QR)
+app.post('/api/whatsapp/restart', auth, async (req, res) => {
+  try {
+    console.log('[API] Restart requested');
+    const result = await whatsapp.restart();
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Get the latest QR code (if available)
+app.get('/api/whatsapp/qr', auth, (req, res) => {
+  const qr = whatsapp.getLatestQR();
+  if (qr) {
+    res.json({ success: true, qrCode: qr });
+  } else {
+    res.json({ success: false, message: 'No QR available' });
   }
 });
 
@@ -119,8 +140,16 @@ wss.on('connection', (ws, req) => {
   if (key !== API_SECRET) { ws.close(1008, 'Unauthorized'); return; }
 
   console.log('[WS] Client connected');
+
   // Send current status immediately
-  ws.send(JSON.stringify({ type: 'status', data: { connected: whatsapp.isReady() } }));
+  const status = { connected: whatsapp.isReady() };
+  ws.send(JSON.stringify({ type: 'status', data: status }));
+
+  // If there's a pending QR, send it immediately so the client gets the freshest one
+  const latestQR = whatsapp.getLatestQR();
+  if (latestQR && !whatsapp.isReady()) {
+    ws.send(JSON.stringify({ type: 'qr', data: { qrCode: latestQR } }));
+  }
 
   ws.on('close', () => console.log('[WS] Client disconnected'));
 });
@@ -130,19 +159,12 @@ server.listen(PORT, () => {
   console.log(`\n🚀 WhatsApp Scheduler Server running on port ${PORT}`);
   console.log(`   By Ahmed Abd Alazeem\n`);
 
-  // Auto-initialize WhatsApp on startup (restore session if available)
-  setTimeout(async () => {
-    try {
-      console.log('[Server] Auto-initializing WhatsApp...');
-      await whatsapp.initialize();
-    } catch (err) {
-      console.log('[Server] WhatsApp init deferred — waiting for client to trigger');
-    }
-  }, 2000);
+  // DO NOT auto-initialize WhatsApp — wait for the app to request it
+  // This prevents stale QR codes from accumulating before anyone connects
 
-  // Load and reschedule pending messages
+  // Load and reschedule pending messages (in case session restores automatically)
   setTimeout(() => {
     try { scheduler.loadAndRescheduleMessages(); }
     catch (e) { console.error('[Server] Reschedule error:', e.message); }
-  }, 5000);
+  }, 3000);
 });
