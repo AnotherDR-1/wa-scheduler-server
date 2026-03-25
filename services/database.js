@@ -26,6 +26,32 @@ db.exec(`
     createdAt   TEXT DEFAULT (datetime('now')),
     sentAt      TEXT
   );
+  
+  CREATE TABLE IF NOT EXISTS passcode (
+    id        INTEGER PRIMARY KEY CHECK (id = 1),
+    passcode  TEXT NOT NULL,
+    createdAt TEXT DEFAULT (datetime('now'))
+  );
 `);
+
+// Passcode management functions
+db.hasPasscode = function() {
+  const row = db.prepare('SELECT passcode FROM passcode WHERE id = 1').get();
+  return !!row;
+};
+
+db.setPasscode = function(passcode) {
+  db.prepare('INSERT OR REPLACE INTO passcode (id, passcode) VALUES (1, ?)').run(passcode);
+};
+
+db.verifyPasscode = function(passcode) {
+  const row = db.prepare('SELECT passcode FROM passcode WHERE id = 1').get();
+  if (!row) return false;
+  return row.passcode === passcode;
+};
+
+db.clearPasscode = function() {
+  db.prepare('DELETE FROM passcode WHERE id = 1').run();
+};
 
 module.exports = db;

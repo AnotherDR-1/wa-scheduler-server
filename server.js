@@ -150,6 +150,60 @@ app.post('/api/whatsapp/logout', async (req, res) => {
   }
 });
 
+// Check if passcode exists for this token
+app.get('/api/passcode/exists', (req, res) => {
+  try {
+    const passcodeExists = db.hasPasscode();
+    res.json({ success: true, exists: passcodeExists });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Create/set passcode for this token
+app.post('/api/passcode/create', (req, res) => {
+  try {
+    const { passcode } = req.body;
+    if (!passcode || passcode.length < 4 || passcode.length > 6) {
+      return res.status(400).json({ success: false, error: 'Passcode must be 4-6 digits' });
+    }
+    if (!/^\d+$/.test(passcode)) {
+      return res.status(400).json({ success: false, error: 'Passcode must contain only digits' });
+    }
+    db.setPasscode(passcode);
+    res.json({ success: true });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Verify passcode
+app.post('/api/passcode/verify', (req, res) => {
+  try {
+    const { passcode } = req.body;
+    if (!passcode) {
+      return res.status(400).json({ success: false, error: 'Passcode required' });
+    }
+    const isValid = db.verifyPasscode(passcode);
+    if (!isValid) {
+      return res.status(401).json({ success: false, error: 'Invalid passcode' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Clear passcode (on logout)
+app.post('/api/passcode/clear', (req, res) => {
+  try {
+    db.clearPasscode();
+    res.json({ success: true });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
 // Schedule a message
 app.post('/api/messages', (req, res) => {
   try {
