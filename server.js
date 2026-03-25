@@ -225,7 +225,6 @@ server.listen(PORT, () => {
 });
 
 // ─── Decrypt activation code (public — no auth needed for setup) ────────────────
-const crypto = require('crypto');
 const MASTER_KEY = 'WhatsAppSchedulerByAhmedAbdAlazeem2026';
 const SALT = 'wa-scheduler-salt-2026';
 
