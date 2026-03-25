@@ -6,12 +6,12 @@
     "start": "node server.js"
   },
   "keywords": [],
-  "author": "Ahmed Abd Alazeem",
+  "author": "@AnotherDr",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
   },
-  "description": "WhatsApp Scheduler Server - By Ahmed Abd Alazeem",
+  "description": "WhatsApp Scheduler Server - By @AnotherDr",
   "dependencies": {
     "better-sqlite3": "^12.8.0",
     "cors": "^2.8.6",

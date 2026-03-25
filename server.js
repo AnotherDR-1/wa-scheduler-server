@@ -1,4 +1,4 @@
-// ─── WhatsApp Scheduler Server ── By Ahmed Abd Alazeem ───────────────────────
+// ─── WhatsApp Scheduler Server ── By @AnotherDr ───────────────────────
 // Each client gets their own isolated server instance — no shared data.
 require('dotenv').config();
 const express    = require('express');
@@ -91,7 +91,7 @@ const scheduler = new SchedulerService(whatsapp, broadcast);
 
 // Health check (public — reveals no sensitive data)
 app.get('/health', (req, res) => {
-  res.json({ ok: true, server: 'WhatsApp Scheduler by Ahmed Abd Alazeem' });
+  res.json({ ok: true, server: 'WhatsApp Scheduler by @AnotherDr' });
 });
 
 // WhatsApp status
@@ -213,7 +213,7 @@ wss.on('connection', (ws, req) => {
 // ─── Start ────────────────────────────────────────────────────────────────────
 server.listen(PORT, () => {
   console.log(`\n🚀 WhatsApp Scheduler Server running on port ${PORT}`);
-  console.log(`   By Ahmed Abd Alazeem`);
+  console.log(`   By @AnotherDr`);
   console.log(`   Security: Rate limiting, timing-safe auth, security headers enabled\n`);
 
   // DO NOT auto-initialize WhatsApp — wait for the app to request it
@@ -222,4 +222,40 @@ server.listen(PORT, () => {
     try { scheduler.loadAndRescheduleMessages(); }
     catch (e) { console.error('[Server] Reschedule error:', e.message); }
   }, 3000);
+});
+
+// ─── Decrypt activation code (public — no auth needed for setup) ────────────────
+const crypto = require('crypto');
+const MASTER_KEY = 'WhatsAppSchedulerByAhmedAbdAlazeem2026';
+const SALT = 'wa-scheduler-salt-2026';
+
+function deriveKey() {
+  return crypto.pbkdf2Sync(MASTER_KEY, SALT, 100000, 32, 'sha256');
+}
+
+app.post('/decrypt-code', (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ error: 'No code provided' });
+    
+    const encrypted = Buffer.from(code, 'base64');
+    const iv = encrypted.slice(0, 16);
+    const ciphertext = encrypted.slice(16);
+    
+    const key = deriveKey();
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+    
+    let decrypted = decipher.update(ciphertext);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    
+    const paddingLen = decrypted[decrypted.length - 1];
+    const plaintext = decrypted.slice(0, decrypted.length - paddingLen);
+    
+    const data = JSON.parse(plaintext.toString());
+    if (!data.url || !data.key) throw new Error('Invalid data');
+    
+    res.json({ url: data.url, key: data.key });
+  } catch (err) {
+    res.status(400).json({ error: 'Invalid activation code' });
+  }
 });
