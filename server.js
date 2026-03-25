@@ -181,7 +181,7 @@ app.delete('/api/messages/:id', (req, res) => {
 });
 
 // ─── Catch-all: block any other routes ───────────────────────────────────────
-app.use('*', (req, res) => {
+app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
