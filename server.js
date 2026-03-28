@@ -312,3 +312,34 @@ app.post('/decrypt-code', (req, res) => {
     res.status(400).json({ error: 'Invalid activation code' });
   }
 });
+
+// Validate license key
+app.post('/api/license/validate', (req, res) => {
+  try {
+    const { licenseKey, deviceId } = req.body;
+    if (!licenseKey || !deviceId) {
+      return res.status(400).json({ success: false, error: 'License key and device ID required' });
+    }
+    const isValid = db.validateLicense(licenseKey, deviceId);
+    if (!isValid) {
+      return res.status(401).json({ success: false, error: 'Invalid license key or device mismatch' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
+// Register license key (first time)
+app.post('/api/license/register', (req, res) => {
+  try {
+    const { licenseKey, deviceId } = req.body;
+    if (!licenseKey || !deviceId) {
+      return res.status(400).json({ success: false, error: 'License key and device ID required' });
+    }
+    db.registerLicense(licenseKey, deviceId);
+    res.json({ success: true });
+  } catch (err) {
+    res.json({ success: false, error: err.message });
+  }
+});

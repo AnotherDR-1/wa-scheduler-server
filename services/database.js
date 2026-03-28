@@ -32,6 +32,13 @@ db.exec(`
     passcode  TEXT NOT NULL,
     createdAt TEXT DEFAULT (datetime('now'))
   );
+  
+  CREATE TABLE IF NOT EXISTS licenses (
+    licenseKey TEXT PRIMARY KEY,
+    deviceId   TEXT NOT NULL UNIQUE,
+    registeredAt TEXT DEFAULT (datetime('now')),
+    expiresAt  TEXT
+  );
 `);
 
 // Passcode management functions
@@ -55,3 +62,18 @@ db.clearPasscode = function() {
 };
 
 module.exports = db;
+
+// License management functions
+db.registerLicense = function(licenseKey, deviceId) {
+  db.prepare('INSERT OR REPLACE INTO licenses (licenseKey, deviceId, registeredAt) VALUES (?, ?, datetime("now"))').run(licenseKey, deviceId);
+};
+
+db.validateLicense = function(licenseKey, deviceId) {
+  const row = db.prepare('SELECT deviceId FROM licenses WHERE licenseKey = ?').get(licenseKey);
+  if (!row) return false;
+  return row.deviceId === deviceId;
+};
+
+db.getLicenseInfo = function(licenseKey) {
+  return db.prepare('SELECT * FROM licenses WHERE licenseKey = ?').get(licenseKey);
+};
